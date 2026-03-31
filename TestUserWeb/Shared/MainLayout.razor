@@ -1,0 +1,56 @@
+﻿@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+@using TestCrudWeb.Enum;
+@using TestCrudWeb.SO;
+@inject ISessionslStorage _sessionStorage
+@inject ProtectedSessionStorage _sessionStorage
+@inject NavigationManager uriHelper;
+@inherits LayoutComponentBase
+
+<PageTitle>TestCrudWeb</PageTitle>
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        @if (isLogin)
+        {
+            <div class="top-row px-4">
+                <a href="" @onclick="exit">Salir</a>
+            </div>    
+        }
+        
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+@code
+{
+    protected bool isLogin = false;                
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+
+            ProtectedBrowserStorageResult<bool> loged = await _sessionStorage.GetAsync<bool>("isLogin");
+            if (loged.Success)
+            {
+                isLogin = loged.Value;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task exit()
+    {
+        await _sessionStorage.DeleteAsync(ValuesKeys.UserName.ToString());
+        await _sessionStorage.DeleteAsync(ValuesKeys.Rol.ToString());
+        await _sessionStorage.SetAsync(ValuesKeys.isLogin.ToString(),false);
+        isLogin = false;
+        uriHelper.NavigateTo(uriHelper.Uri, forceLoad: true);
+        StateHasChanged();
+    }
+}

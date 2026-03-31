@@ -1,0 +1,105 @@
+﻿@using TestCrudWeb.DTOs;
+@using TestCrudWeb.SO
+@using TestCrudWeb.Enum;
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using TestCrudWeb.Services;
+@inject ISessionslStorage _sessionStorage
+@inject ProtectedSessionStorage _sessionStorage
+@inject NavigationManager uriHelper;
+@inject IUserService _userService
+
+@page "/"
+
+<PageTitle>Index</PageTitle>
+
+@if (isLogin)
+{
+    <h1>Hola, Bienvenido!</h1>
+
+}
+else
+{
+    @if (loadin)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else
+    {
+        <h1>Por favor autenticarse</h1>
+        <div class="row">
+            <div class="col-md-12">
+                <form>
+                    <label for="email">Email:</label>
+                    <input required type="text" id="email" @bind-value="email">
+                    <label for="password">Password:</label>
+                    <input required type="password" @bind-value="password">
+                    <button class="btn-primary" type="button" @onclick="login"> Entrar</button>
+                </form>
+                <br>
+                @if (!string.IsNullOrEmpty(@ServerError))
+                {
+                    <div class="alert alert-danger col-6" role="alert">
+                        @ServerError
+                    </div>
+                }
+            </div>
+        </div>
+    }
+}
+
+@code
+{
+    protected bool isLogin = false;
+    protected bool loadin = false;
+    protected string rol = "";
+    private string email = "";
+    private string password = "";
+    private string ServerError = "";
+    private UsuariosDTO usuario = new UsuariosDTO();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+
+            ProtectedBrowserStorageResult<bool> loged = await _sessionStorage.GetAsync<bool>("isLogin");
+            if (loged.Success)
+            {
+                isLogin = loged.Value;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task login()
+    {
+        loadin = true;
+        if (!string.IsNullOrEmpty(email) &&
+            !string.IsNullOrEmpty(password))
+        {
+            usuario = await _userService.Login(email, password);
+            if (usuario.IdUsuario > 0)
+            {
+                isLogin = true;
+                await _sessionStorage.SetAsync(ValuesKeys.isLogin.ToString(), true);
+                await _sessionStorage.SetAsync(ValuesKeys.Rol.ToString(), usuario.TipoUsuario);
+                if (usuario.IdTipoUsuario == 1)
+                {
+                    uriHelper.NavigateTo("/fetchdata");
+                }
+            }
+            else
+            {
+                ServerError = usuario.Email;                
+            }
+
+        }
+        else
+        {
+            ServerError = "Debe Completar los campos";         
+        }
+        loadin = false;
+        StateHasChanged();
+    }
+
+}
